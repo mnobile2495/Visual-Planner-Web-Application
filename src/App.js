@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Stage, Layer, Line, Circle, Rect } from 'react-konva';
+import { Stage, Layer, Line, Circle, Rect, Text } from 'react-konva';
 
 const App = () => {
   const stageRef = useRef(null);
@@ -10,20 +10,49 @@ const App = () => {
   const [drawing, setDrawing] = useState(false);
   const [lines, setLines] = useState([]);
   const [shapes, setShapes] = useState([]);
+  const [textElements, setTextElements] = useState([]);
   const [toolbarPosition, setToolbarPosition] = useState({ x: 10, y: 10 });
   const [toolbarDragging, setToolbarDragging] = useState(false);
   const [lastToolbarX, setLastToolbarX] = useState(0);
   const [lastToolbarY, setLastToolbarY] = useState(0);
+  const [textToolActive, setTextToolActive] = useState(false);
+  const [textPosition, setTextPosition] = useState({ x: 100, y: 100 });
+  const [editedText, setEditedText] = useState('');
+  const [textColor, setTextColor] = useState('#000000');
+  const [textSize, setTextSize] = useState(16);
+  const [textFont, setTextFont] = useState('Arial');
+  const [editingText, setEditingText] = useState(false);
+  const [selectedTextId, setSelectedTextId] = useState(null);
 
   const handleMouseDown = (event) => {
     const stage = stageRef.current;
     const { x, y } = stage.getPointerPosition();
-    setDrawing(true);
 
-    if (tool === 'pen') {
-      setLines([...lines, { tool, color, thickness, points: [x, y] }]);
-    } else if (tool === 'circle' || tool === 'square') {
-      setShapes([...shapes, { tool, color, thickness, startX: x, startY: y, endX: x, endY: y }]);
+    if (tool === 'spotErase') {
+      const intersectedShape = stage.getIntersection({ x, y });
+
+      if (intersectedShape) {
+        const shapeId = intersectedShape.id();
+
+        if (intersectedShape.getClassName() === 'Text') {
+          const updatedTextElements = textElements.filter((element) => element.id !== shapeId);
+          setTextElements(updatedTextElements);
+        } else {
+          const updatedShapes = shapes.filter((shape) => shape.id !== shapeId);
+          setShapes(updatedShapes);
+        }
+      }
+    } else if (tool === 'text') {
+      setTextPosition({ x, y });
+      setTextToolActive(true);
+    } else {
+      setDrawing(true);
+
+      if (tool === 'pen') {
+        setLines([...lines, { tool, color, thickness, points: [x, y] }]);
+      } else if (tool === 'circle' || tool === 'square') {
+        setShapes([...shapes, { id: shapes.length, tool, color, thickness, startX: x, startY: y, endX: x, endY: y }]);
+      }
     }
   };
 
@@ -43,6 +72,11 @@ const App = () => {
       lastShape.endY = y;
       setShapes(updatedShapes);
     }
+
+    if (tool === 'spotErase') {
+      const intersectedShape = stage.getIntersection({ x, y });
+      stage.container().style.cursor = intersectedShape ? 'pointer' : 'default';
+    }
   };
 
   const handleMouseUp = () => {
@@ -52,10 +86,14 @@ const App = () => {
   const clearCanvas = () => {
     setLines([]);
     setShapes([]);
+    setTextElements([]);
   };
 
   const handleToolChange = (selectedTool) => {
     setTool(selectedTool);
+    setTextToolActive(false);
+    setEditingText(false);
+    setSelectedTextId(null);
   };
 
   const handleColorChange = (event) => {
@@ -89,6 +127,65 @@ const App = () => {
     }
   };
 
+  const handleTextChange = (event) => {
+    setEditedText(event.target.value);
+  };
+
+  const handleTextSubmit = () => {
+    if (editedText !== '') {
+      if (editingText) {
+        const updatedTextElements = textElements.map((element) => {
+          if (element.id === selectedTextId) {
+            return {
+              ...element,
+              text: editedText,
+              color: textColor,
+              fontSize: textSize,
+              fontFamily: textFont,
+            };
+          }
+          return element;
+        });
+        setTextElements(updatedTextElements);
+        setEditingText(false);
+        setSelectedTextId(null);
+      } else {
+        setTextElements([
+          ...textElements,
+          {
+            id: textElements.length,
+            x: textPosition.x,
+            y: textPosition.y,
+            text: editedText,
+            color: textColor,
+            fontSize: textSize,
+            fontFamily: textFont,
+          },
+        ]);
+        setTextToolActive(false);
+        setEditedText('');
+      }
+    }
+  };
+
+  const handleTextDelete = (id) => {
+    const updatedTextElements = textElements.filter((element) => element.id !== id);
+    setTextElements(updatedTextElements);
+  };
+
+  const handleTextDoubleClick = (id) => {
+    const selectedTextElement = textElements.find((element) => element.id === id);
+    if (selectedTextElement) {
+      setSelectedTextId(id);
+      setEditedText(selectedTextElement.text);
+      setTextColor(selectedTextElement.color);
+      setTextSize(selectedTextElement.fontSize);
+      setTextFont(selectedTextElement.fontFamily);
+      setTextToolActive(true);
+      setEditingText(true);
+    }
+  };
+
   return (
     <div>
       <Stage
@@ -108,11 +205,10 @@ const App = () => {
               return (
                 <Circle
                   key={index}
+                  id={shape.id}
                   x={shape.startX}
                   y={shape.startY}
-                  radius={Math.sqrt(
-                    Math.pow(shape.endX - shape.startX, 2) + Math.pow(shape.endY - shape.startY, 2)
-                  )}
+                  radius={Math.sqrt(Math.pow(shape.endX - shape.startX, 2) + Math.pow(shape.endY - shape.startY, 2))}
                   stroke={shape.color}
                   strokeWidth={shape.thickness}
                   draggable
@@ -122,6 +218,7 @@ const App = () => {
               return (
                 <Rect
                   key={index}
+                  id={shape.id}
                   x={Math.min(shape.startX, shape.endX)}
                   y={Math.min(shape.startY, shape.endY)}
                   width={Math.abs(shape.endX - shape.startX)}
@@ -134,6 +231,20 @@ const App = () => {
             }
             return null;
           })}
+          {textElements.map((textElement) => (
+            <Text
+              key={textElement.id}
+              id={textElement.id}
+              x={textElement.x}
+              y={textElement.y}
+              text={textElement.text}
+              fill={textElement.color}
+              fontSize={textElement.fontSize}
+              fontFamily={textElement.fontFamily}
+              draggable
+              onDblClick={() => handleTextDoubleClick(textElement.id)}
+            />
+          ))}
         </Layer>
       </Stage>
       <div
@@ -154,13 +265,38 @@ const App = () => {
         <button onClick={() => handleToolChange('pen')}>Pen</button>
         <button onClick={() => handleToolChange('circle')}>Circle</button>
         <button onClick={() => handleToolChange('square')}>Square</button>
+        <button onClick={() => handleToolChange('text')}>Text</button>
+        <button onClick={() => handleToolChange('spotErase')}>Spot Erase</button>
         <input type="color" value={color} onChange={handleColorChange} />
         <input type="number" value={thickness} min={1} onChange={handleThicknessChange} />
         <button onClick={clearCanvas}>Clear</button>
       </div>
+      {textToolActive && (
+        <div
+          style={{
+            position: 'absolute',
+            top: textPosition.y,
+            left: textPosition.x,
+            border: '1px solid black',
+            background: 'white',
+            padding: '10px',
+            userSelect: 'none',
+          }}
+        >
+          <input type="text" value={editedText} onChange={handleTextChange} />
+          <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} />
+          <input type="number" value={textSize} min={1} onChange={(e) => setTextSize(e.target.value)} />
+          <select value={textFont} onChange={(e) => setTextFont(e.target.value)}>
+            <option value="Arial">Arial</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Helvetica">Helvetica</option>
+            <option value="Times New Roman">Times New Roman</option>
+          </select>
+          <button onClick={handleTextSubmit}>{editingText ? 'Update' : 'Place'}</button>
+        </div>
+      )}
     </div>
   );
 };
 
 export default App;
-
