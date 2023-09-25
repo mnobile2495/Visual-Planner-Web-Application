@@ -5,5 +5,5 @@ This is a simple web application modeled after some of the features present on p
 * Clean up dragging while using the circle/square tool such that new shapes are not created when the original is clicked to begin dragging.
 * Add OAUTH
 * Add co-op play
-* Implement some kind of clip art
+* Implement some kind of clip art functionality. Small simple icons user can place on canvas.
 
