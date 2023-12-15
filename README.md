@@ -1,6 +1,8 @@
 # Visual Planner Web Application
 This is a simple web application modeled after some of the features present on popular visual plannners such as Plottr. It features a draggable toolbar that houses a drawing tool, circle/square creation tool, text tool, and the ability to delete elements on the page.
-![image](https://github.com/mnyellowsunrise/Visual-Planner-Web-Application/assets/77944454/45ef3f12-26b7-434a-a247-257089b17491)
+
+#Project Demo
+![image](https://github.com/mnyellowsunrise/Visual-Planner-Web-Application/assets/77944454/b077099b-4ab5-4b01-b296-9d3722783ea1)
 
 
 # TODO
