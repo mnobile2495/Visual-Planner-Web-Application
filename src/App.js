@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Stage, Layer, Line, Circle, Rect, Text } from 'react-konva';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 
 const App = () => {
   const stageRef = useRef(null);
@@ -23,6 +25,7 @@ const App = () => {
   const [textFont, setTextFont] = useState('Arial');
   const [editingText, setEditingText] = useState(false);
   const [selectedTextId, setSelectedTextId] = useState(null);
+  
 
   const handleMouseDown = (event) => {
     const stage = stageRef.current;
@@ -184,10 +187,21 @@ const App = () => {
       setTextToolActive(true);
       setEditingText(true);
     }
+
+
   };
 
   return (
     <div>
+      <center><GoogleLogin
+  onSuccess={credentialResponse => {
+    console.log(credentialResponse);
+  }}
+  onError={() => {
+    console.log('Login Failed');
+  }}
+/></center>
+       
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}
