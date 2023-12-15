@@ -10,5 +10,5 @@ This is a simple web application modeled after some of the features present on p
 * Add OAUTH
 * Add co-op play
 * Implement some kind of clip art functionality. Small simple icons user can place on canvas.
-* Update repository to match local version of application 
+
 
